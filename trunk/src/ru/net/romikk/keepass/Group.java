@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
  * To change this template use File | Settings | File Templates.
  */
 public class Group {
-    public Group(short fieldType, ByteBuffer fieldData) {
+    public Group(short fieldType, byte[] fieldData) {
         //To change body of created methods use File | Settings | File Templates.
     }
 }

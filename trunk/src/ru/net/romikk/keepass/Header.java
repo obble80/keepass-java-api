@@ -15,6 +15,7 @@ import java.lang.reflect.InvocationTargetException;
  * To change this template use File | Settings | File Templates.
  */
 public class Header {
+    public static int LENGTH = 124;
     int dwSignature1;
     int dwSignature2;
     int dwFlags;
