@@ -10,7 +10,40 @@ import java.nio.ByteBuffer;
  * To change this template use File | Settings | File Templates.
  */
 public class Group {
-    public Group(short fieldType, byte[] fieldData) {
-        //To change body of created methods use File | Settings | File Templates.
+    private int groupId;
+    private String groupName;
+    private long creationTime;
+    private short level;
+
+    public int getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(int groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    public long getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(long creationTime) {
+        this.creationTime = creationTime;
+    }
+
+    public short getLevel() {
+        return level;
+    }
+
+    public void setLevel(short level) {
+        this.level = level;
     }
 }

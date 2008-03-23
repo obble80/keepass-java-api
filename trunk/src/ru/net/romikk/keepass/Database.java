@@ -51,11 +51,18 @@ public class Database {
 
         groups = new Group[header.getGroups()];
         for (int i = 0; i < groups.length; i++) {
-            short fieldType = plainContent.getShort();
-            int fieldSize = plainContent.getInt();
-            byte[] fieldData = new byte[fieldSize];
-            plainContent.get(fieldData);
-            groups[i] = new Group(fieldType, fieldData);
+            short fieldType = 0;
+            GroupBuilder builder = new GroupBuilder();
+            while ((fieldType = plainContent.getShort()) != -1) {
+                if(fieldType == 0 ) {
+                    continue;
+                }
+                int fieldSize = plainContent.getInt();
+                byte[] fieldData = new byte[fieldSize];
+                plainContent.get(fieldData);
+                builder.addField(fieldType, ByteBuffer.wrap(fieldData).order(ByteOrder.LITTLE_ENDIAN));
+            }
+            groups[i] = builder.buildGroup();
         }
     }
 
@@ -128,21 +135,17 @@ public class Database {
         return toReturn;
     }
 
-    private static String printBytes(byte[] b)
-    {
-        StringBuilder sb = new StringBuilder(8*b.length);
-        for(int i = 0; i<b.length; i++)
-        {
-            sb.append(printByte(b[i])+"|");
+    private static String printBytes(byte[] b) {
+        StringBuilder sb = new StringBuilder(8 * b.length);
+        for (int i = 0; i < b.length; i++) {
+            sb.append(printByte(b[i]) + "|");
         }
         return sb.toString();
     }
 
-    private static String printByte(byte b)
-    {
+    private static String printByte(byte b) {
         StringBuilder sb = new StringBuilder(8);
-        for(int i = 0; i<8; i++)
-        {
+        for (int i = 0; i < 8; i++) {
             sb.append(((b >> i) & 0x1) == 1 ? "1" : "0");
         }
         return sb.toString();
