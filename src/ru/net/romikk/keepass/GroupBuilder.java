@@ -15,34 +15,56 @@ public class GroupBuilder {
     private long creationTime;
     private short level;
 
-    public void addField(short fieldType, ByteBuffer fieldData) {
+    public void readField(short fieldType, int fieldSize, ByteBuffer data) {
         switch (fieldType) {
             case 0x0000: // Invalid or comment block, block is ignored
                 break;
             case 0x0001: // Group ID, FIELDSIZE must be 4 bytes; It can be any 32-bit value except 0 and 0xFFFFFFFF
-                this.groupId = fieldData.getInt();
+                assertFieldSize(4, fieldSize);
+                this.groupId = data.getInt();
                 break;
             case 0x0002: // Group name, FIELDDATA is an UTF-8 encoded string
-                this.groupName = new String(fieldData.array(), 0, fieldData.limit() - 1);
+                byte[] fieldData = new byte[fieldSize];
+                data.get(fieldData);
+                this.groupName = new String(fieldData, 0, fieldData.length - 1);
                 break;
             case 0x0003: // Creation time, FIELDSIZE = 5, FIELDDATA = packed date/time
+                assertFieldSize(5, fieldSize);
 //                this.creationTime = fieldData.getLong()
+                for (int i = 0; i < 5; i++) data.get();
                 break;
             case 0x0004: // Last modification time, FIELDSIZE = 5, FIELDDATA = packed date/time
+                assertFieldSize(5, fieldSize);
+                for (int i = 0; i < 5; i++) data.get();
                 break;
             case 0x0005: // Last access time, FIELDSIZE = 5, FIELDDATA = packed date/time
+                assertFieldSize(5, fieldSize);
+                for (int i = 0; i < 5; i++) data.get();
                 break;
             case 0x0006: // Expiration time, FIELDSIZE = 5, FIELDDATA = packed date/time
+                assertFieldSize(5, fieldSize);
+                for (int i = 0; i < 5; i++) data.get();
                 break;
             case 0x0007: // Image ID, FIELDSIZE must be 4 bytes
+                assertFieldSize(4, fieldSize);
+                data.getInt();
                 break;
             case 0x0008: // Level, FIELDSIZE = 2
-                this.level = fieldData.getShort();
+                assertFieldSize(2, fieldSize);
+                this.level = data.getShort();
                 break;
             case 0x0009: // Flags, 32-bit value, FIELDSIZE = 4
+                assertFieldSize(4, fieldSize);
+                data.getInt();
                 break;
             default: // Group entry terminator, FIELDSIZE must be 0
                 break;
+        }
+    }
+
+    private static void assertFieldSize(int expected, int provided) {
+        if (expected != provided) {
+            throw new IllegalArgumentException("Invalid field size: " + provided);
         }
     }
 

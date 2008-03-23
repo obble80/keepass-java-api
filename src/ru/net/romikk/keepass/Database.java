@@ -18,19 +18,19 @@ import java.io.IOException;
 import java.io.File;
 import java.util.Arrays;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * $Id: $
  */
 public class Database {
-    private BlockCipher aesEngine = new AESEngine();
-    private BufferedBlockCipher ecbCipher = new BufferedBlockCipher(aesEngine);
-    private BufferedBlockCipher cbcCipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(aesEngine), new ZeroBytePadding());
 
     private Header header;
     private Group[] groups;
-    private ByteBuffer plainContent;
+    private Entry[] entries;
+    private ByteBuffer content;
 
+    BlockCipher aesEngine = new AESEngine();
     private byte[] masterKey = Hex.decode("83b62ec2690df02ce7b2f94208469decd93fb0d2febbc2408c86ae7860f5d6af");
 
     public Database(String file) throws Exception {
@@ -44,25 +44,40 @@ public class Database {
         channel.read(bb);
         header = new Header(bb);
 
-        ByteBuffer content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
+        content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
         channel.read(content);
-        plainContent = decrypt(content);
-        plainContent.position(0);
+
+        // decrypting content
+        decrypt(content);
+
+        content.rewind();
 
         groups = new Group[header.getGroups()];
         for (int i = 0; i < groups.length; i++) {
-            short fieldType = 0;
+            short fieldType;
             GroupBuilder builder = new GroupBuilder();
-            while ((fieldType = plainContent.getShort()) != -1) {
-                if(fieldType == 0 ) {
+            while ((fieldType = content.getShort()) != -1) {
+                if (fieldType == 0) {
                     continue;
                 }
-                int fieldSize = plainContent.getInt();
-                byte[] fieldData = new byte[fieldSize];
-                plainContent.get(fieldData);
-                builder.addField(fieldType, ByteBuffer.wrap(fieldData).order(ByteOrder.LITTLE_ENDIAN));
+                int fieldSize = content.getInt();
+                builder.readField(fieldType, fieldSize, content);
             }
             groups[i] = builder.buildGroup();
+        }
+
+        entries = new Entry[header.getEntries()];
+        for (int i = 0; i < entries.length; i++) {
+            short fieldType;
+            EntryBuilder builder = new EntryBuilder();
+            while ((fieldType = content.getShort()) != -1) {
+                if (fieldType == 0) {
+                    continue;
+                }
+                int fieldSize = content.getInt();
+                builder.readField(fieldType, fieldSize, content);
+            }
+            entries[i] = builder.buildEntry();
         }
     }
 
@@ -71,68 +86,65 @@ public class Database {
     }
 
     public Group[] getGroups() throws IOException {
-        if (groups == null) {
-            plainContent.position(0);
-        }
         return groups;
     }
 
-    public byte[] processECBCipher(KeyParameter key, byte[] data) throws InvalidCipherTextException {
-
-        ecbCipher.init(true, key);
-
-        byte[] toReturn = new byte[ecbCipher.getOutputSize(data.length)];
-
-        int outputLen = ecbCipher.processBytes(data, 0, data.length, toReturn, 0);
-
-        ecbCipher.doFinal(toReturn, outputLen);
-
-        return toReturn;
+    public Entry[] getEntries() {
+        return entries;
     }
 
-    public byte[] processCBCCipher(KeyParameter key, byte[] data, byte[] iv) throws InvalidCipherTextException {
+    private void decrypt(ByteBuffer content) throws Exception {
 
-        cbcCipher.init(false, new ParametersWithIV(key, iv));
-
-        byte[] toReturn = new byte[cbcCipher.getOutputSize(data.length)];
-
-        int outputLen = cbcCipher.processBytes(data, 0, data.length, toReturn, 0);
-
-        cbcCipher.doFinal(toReturn, outputLen);
-
-        return toReturn;
-    }
-
-    private ByteBuffer decrypt(ByteBuffer content) throws Exception {
-
-        byte[] keyToTransform = masterKey;
-        KeyParameter masterSeed2 = new KeyParameter(getHeader().getMasterSeed2());
-        for (int i = 0; i < getHeader().getKeyEncRounds(); i++) {
-            keyToTransform = processECBCipher(masterSeed2, keyToTransform);
-        }
+        byte[] transformedKey = transformKey(masterKey);
 
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        byte[] transformedKey = sha256.digest(keyToTransform);
-
-        sha256.reset();
         sha256.update(getHeader().getMasterSeed());
         sha256.update(transformedKey);
-        KeyParameter finalKey = new KeyParameter(sha256.digest());
+        byte[] finalKey = sha256.digest();
 
-        ByteBuffer toReturn = ByteBuffer.allocate(content.capacity()).order(ByteOrder.LITTLE_ENDIAN);
-        toReturn.put(processCBCCipher(finalKey, content.array(), getHeader().getEncryptionIV()));
+        // decrypt main data
+        performAESDecrypt(finalKey, content);
 
         sha256.reset();
 
         byte[] a = getHeader().getContentsHash();
-        byte[] b = sha256.digest(toReturn.array());
+        byte[] b = sha256.digest(content.array());
 //        Hex.encode(a, System.out);
 //        System.out.println(printBytes(a));
 //        Hex.encode(b, System.out);
 //        System.out.println(printBytes(b));
         System.out.println(Arrays.hashCode(a) == Arrays.hashCode(b));
+    }
 
-        return toReturn;
+    private void performAESDecrypt(byte[] key, ByteBuffer content) throws IOException, InvalidCipherTextException {
+        KeyParameter keyParameter = new KeyParameter(key);
+
+        BufferedBlockCipher cbcCipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(this.aesEngine), new ZeroBytePadding());
+        cbcCipher.init(false, new ParametersWithIV(keyParameter, this.header.getEncryptionIV()));
+
+        byte[] result = new byte[content.capacity()];
+        int outputLen = cbcCipher.processBytes(content.array(), 0, content.capacity(), result, 0);
+        cbcCipher.doFinal(result, outputLen);
+
+        System.arraycopy(result, 0, content.array(), 0, content.capacity());
+        content.rewind();
+    }
+
+    private byte[] transformKey(byte[] keyToTransform) throws IOException, InvalidCipherTextException, NoSuchAlgorithmException {
+        KeyParameter masterSeed2 = new KeyParameter(this.header.getMasterSeed2());
+
+        BufferedBlockCipher ecbCipher = new BufferedBlockCipher(this.aesEngine);
+        ecbCipher.init(true, masterSeed2);
+
+        for (int i = 0; i < getHeader().getKeyEncRounds(); i++) {
+            byte[] result = new byte[keyToTransform.length];
+            int outputLen = ecbCipher.processBytes(keyToTransform, 0, keyToTransform.length, result, 0);
+            ecbCipher.doFinal(result, outputLen);
+            System.arraycopy(result, 0, keyToTransform, 0, keyToTransform.length);
+        }
+
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+        return sha256.digest(keyToTransform);
     }
 
     private static String printBytes(byte[] b) {
@@ -151,13 +163,12 @@ public class Database {
         return sb.toString();
     }
 
-    public ByteBuffer getPlainContent() {
-        return plainContent;
+    public ByteBuffer getContent() {
+        return content;
     }
 
     public static void main(String[] args) throws Exception {
-//        Security.addProvider(new BouncyCastleProvider());
         Database db = new Database("Database.kdb");
-        System.out.println(new String(db.getPlainContent().array()));
+        System.out.println(new String(db.getContent().array()));
     }
 }
