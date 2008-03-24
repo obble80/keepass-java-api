@@ -30,6 +30,8 @@ public class Database {
     private Entry[] entries;
     private ByteBuffer content;
 
+    private int DB_VERSION = 0x00030002;
+
     BlockCipher aesEngine = new AESEngine();
     private byte[] masterKey = Hex.decode("83b62ec2690df02ce7b2f94208469decd93fb0d2febbc2408c86ae7860f5d6af");
 
@@ -43,6 +45,10 @@ public class Database {
         ByteBuffer bb = ByteBuffer.allocate(Header.LENGTH);
         channel.read(bb);
         header = new Header(bb);
+
+        if ((header.getVersion() & 0xFFFFFF00) != (DB_VERSION & 0xFFFFFF00)) {
+            throw new Exception("Unsuppoted version: " + Integer.toHexString(header.getVersion()));
+        }
 
         content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
         channel.read(content);
@@ -136,8 +142,9 @@ public class Database {
         BufferedBlockCipher ecbCipher = new BufferedBlockCipher(this.aesEngine);
         ecbCipher.init(true, masterSeed2);
 
+        byte[] result = new byte[keyToTransform.length];
+
         for (int i = 0; i < getHeader().getKeyEncRounds(); i++) {
-            byte[] result = new byte[keyToTransform.length];
             int outputLen = ecbCipher.processBytes(keyToTransform, 0, keyToTransform.length, result, 0);
             ecbCipher.doFinal(result, outputLen);
             System.arraycopy(result, 0, keyToTransform, 0, keyToTransform.length);
@@ -147,7 +154,7 @@ public class Database {
         return sha256.digest(keyToTransform);
     }
 
-    private static String printBytes(byte[] b) {
+    public static String printBytes(byte[] b) {
         StringBuilder sb = new StringBuilder(8 * b.length);
         for (int i = 0; i < b.length; i++) {
             sb.append(printByte(b[i]) + "|");
@@ -155,7 +162,7 @@ public class Database {
         return sb.toString();
     }
 
-    private static String printByte(byte b) {
+    public static String printByte(byte b) {
         StringBuilder sb = new StringBuilder(8);
         for (int i = 0; i < 8; i++) {
             sb.append(((b >> i) & 0x1) == 1 ? "1" : "0");
@@ -169,6 +176,6 @@ public class Database {
 
     public static void main(String[] args) throws Exception {
         Database db = new Database("Database.kdb");
-        System.out.println(new String(db.getContent().array()));
+//        System.out.println(new String(db.getContent().array()));
     }
 }
