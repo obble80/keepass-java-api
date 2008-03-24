@@ -1,6 +1,7 @@
 package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,7 +19,7 @@ public class EntryBuilder {
     private String notes;
     private String binaryDescription;
 
-    public void readField(short fieldType, int fieldSize, ByteBuffer data) {
+    public void readField(short fieldType, int fieldSize, ByteBuffer data) throws UnsupportedEncodingException {
         byte[] fieldData;
         switch (fieldType) {
             case 0x0000: // Invalid or comment block, block is ignored
@@ -39,27 +40,27 @@ public class EntryBuilder {
             case 0x0004: // Title of the entry, FIELDDATA is an UTF-8 encoded string
                 fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.title = new String(fieldData, 0, fieldData.length - 1);
+                this.title = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x0005: // URL string, FIELDDATA is an UTF-8 encoded string
                 fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.url = new String(fieldData, 0, fieldData.length - 1);
+                this.url = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x0006: // UserName string, FIELDDATA is an UTF-8 encoded string
                 fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.username = new String(fieldData, 0, fieldData.length - 1);
+                this.username = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x0007: // Password string, FIELDDATA is an UTF-8 encoded string
                 fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.password = new String(fieldData, 0, fieldData.length - 1);
+                this.password = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x0008: // Notes string, FIELDDATA is an UTF-8 encoded string
                 fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.notes = new String(fieldData, 0, fieldData.length - 1);
+                this.notes = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x0009: // Creation time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
@@ -80,7 +81,7 @@ public class EntryBuilder {
             case 0x000D: // Binary description UTF-8 encoded string
                 fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.binaryDescription = new String(fieldData, 0, fieldData.length - 1);
+                this.binaryDescription = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x000E: // Binary data
                 for (int i = 0; i < fieldSize; i++) data.get();

@@ -1,6 +1,7 @@
 package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Created by IntelliJ IDEA.
@@ -15,7 +16,7 @@ public class GroupBuilder {
     private long creationTime;
     private short level;
 
-    public void readField(short fieldType, int fieldSize, ByteBuffer data) {
+    public void readField(short fieldType, int fieldSize, ByteBuffer data) throws UnsupportedEncodingException {
         switch (fieldType) {
             case 0x0000: // Invalid or comment block, block is ignored
                 break;
@@ -26,7 +27,7 @@ public class GroupBuilder {
             case 0x0002: // Group name, FIELDDATA is an UTF-8 encoded string
                 byte[] fieldData = new byte[fieldSize];
                 data.get(fieldData);
-                this.groupName = new String(fieldData, 0, fieldData.length - 1);
+                this.groupName = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x0003: // Creation time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
