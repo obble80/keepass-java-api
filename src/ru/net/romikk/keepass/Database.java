@@ -28,7 +28,6 @@ public class Database {
     private Header header;
     private Group[] groups;
     private Entry[] entries;
-    private ByteBuffer content;
 
     private int DB_VERSION = 0x00030002;
 
@@ -42,24 +41,24 @@ public class Database {
     public Database(File file) throws Exception {
         FileChannel channel = new FileInputStream(file).getChannel();
 
-        ByteBuffer bb = ByteBuffer.allocate(Header.LENGTH);
+        ByteBuffer bb = ByteBuffer.allocate(Header.LENGTH).order(ByteOrder.LITTLE_ENDIAN);
         channel.read(bb);
-        header = new Header(bb);
+        this.header = new Header(bb);
 
         if ((header.getVersion() & 0xFFFFFF00) != (DB_VERSION & 0xFFFFFF00)) {
-            throw new Exception("Unsuppoted version: " + Integer.toHexString(header.getVersion()));
+            throw new Exception("Unsupproted version: " + Integer.toHexString(this.header.getVersion()));
         }
 
-        content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
         channel.read(content);
 
         // decrypting content
-        decrypt(content);
+        decrypt(content.array());
 
         content.rewind();
 
-        groups = new Group[header.getGroups()];
-        for (int i = 0; i < groups.length; i++) {
+        this.groups = new Group[this.header.getGroups()];
+        for (int i = 0; i < this.groups.length; i++) {
             short fieldType;
             GroupBuilder builder = new GroupBuilder();
             while ((fieldType = content.getShort()) != -1) {
@@ -69,11 +68,12 @@ public class Database {
                 int fieldSize = content.getInt();
                 builder.readField(fieldType, fieldSize, content);
             }
-            groups[i] = builder.buildGroup();
+            content.getInt(); // reading FIELDSIZE of group entry terminator
+            this.groups[i] = builder.buildGroup();
         }
 
-        entries = new Entry[header.getEntries()];
-        for (int i = 0; i < entries.length; i++) {
+        this.entries = new Entry[this.header.getEntries()];
+        for (int i = 0; i < this.entries.length; i++) {
             short fieldType;
             EntryBuilder builder = new EntryBuilder();
             while ((fieldType = content.getShort()) != -1) {
@@ -83,7 +83,8 @@ public class Database {
                 int fieldSize = content.getInt();
                 builder.readField(fieldType, fieldSize, content);
             }
-            entries[i] = builder.buildEntry();
+            content.getInt(); // reading FIELDSIZE of entry terminator
+            this.entries[i] = builder.buildEntry();
         }
     }
 
@@ -99,41 +100,42 @@ public class Database {
         return entries;
     }
 
-    private void decrypt(ByteBuffer content) throws Exception {
+    private void decrypt(byte[] data) throws Exception {
 
         byte[] transformedKey = transformKey(masterKey);
 
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        sha256.update(getHeader().getMasterSeed());
+        sha256.update(this.header.getMasterSeed());
         sha256.update(transformedKey);
         byte[] finalKey = sha256.digest();
 
         // decrypt main data
-        performAESDecrypt(finalKey, content);
+        performAESDecrypt(finalKey, data);
+
+        int idx = 1;
+        while (data[data.length - idx] != 0) {
+            idx++;
+        }
 
         sha256.reset();
-
-        byte[] a = getHeader().getContentsHash();
-        byte[] b = sha256.digest(content.array());
-//        Hex.encode(a, System.out);
-//        System.out.println(printBytes(a));
-//        Hex.encode(b, System.out);
-//        System.out.println(printBytes(b));
-        System.out.println(Arrays.hashCode(a) == Arrays.hashCode(b));
+        sha256.update(data, 0, data.length - idx + 1);
+        byte[] hash = sha256.digest();
+        if (!Arrays.equals(hash, this.header.getContentsHash())) {
+            throw new Exception("Decryption failed! Incorrect password and/or master key.");
+        }
     }
 
-    private void performAESDecrypt(byte[] key, ByteBuffer content) throws IOException, InvalidCipherTextException {
+    private void performAESDecrypt(byte[] key, byte[] data) throws IOException, InvalidCipherTextException {
         KeyParameter keyParameter = new KeyParameter(key);
 
         BufferedBlockCipher cbcCipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(this.aesEngine), new ZeroBytePadding());
         cbcCipher.init(false, new ParametersWithIV(keyParameter, this.header.getEncryptionIV()));
 
-        byte[] result = new byte[content.capacity()];
-        int outputLen = cbcCipher.processBytes(content.array(), 0, content.capacity(), result, 0);
+        byte[] result = new byte[data.length];
+        int outputLen = cbcCipher.processBytes(data, 0, data.length, result, 0);
         cbcCipher.doFinal(result, outputLen);
 
-        System.arraycopy(result, 0, content.array(), 0, content.capacity());
-        content.rewind();
+        System.arraycopy(result, 0, data, 0, data.length);
     }
 
     private byte[] transformKey(byte[] keyToTransform) throws IOException, InvalidCipherTextException, NoSuchAlgorithmException {
@@ -154,28 +156,7 @@ public class Database {
         return sha256.digest(keyToTransform);
     }
 
-    public static String printBytes(byte[] b) {
-        StringBuilder sb = new StringBuilder(8 * b.length);
-        for (int i = 0; i < b.length; i++) {
-            sb.append(printByte(b[i]) + "|");
-        }
-        return sb.toString();
-    }
-
-    public static String printByte(byte b) {
-        StringBuilder sb = new StringBuilder(8);
-        for (int i = 0; i < 8; i++) {
-            sb.append(((b >> i) & 0x1) == 1 ? "1" : "0");
-        }
-        return sb.toString();
-    }
-
-    public ByteBuffer getContent() {
-        return content;
-    }
-
     public static void main(String[] args) throws Exception {
         Database db = new Database("Database.kdb");
-//        System.out.println(new String(db.getContent().array()));
     }
 }

@@ -30,7 +30,6 @@ public class Header {
 
     public Header(ByteBuffer bb) {
         bb.rewind();
-        bb.order(ByteOrder.LITTLE_ENDIAN);
         dwSignature1 = bb.getInt();
         dwSignature2 = bb.getInt();
         dwFlags = bb.getInt();
