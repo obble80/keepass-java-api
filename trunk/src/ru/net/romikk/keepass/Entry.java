@@ -71,4 +71,17 @@ public class Entry {
     public void setBinaryDescription(String binaryDescription) {
         this.binaryDescription = binaryDescription;
     }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+        sb.append("gid=").append(Integer.toHexString(this.groupId));
+        sb.append(", ");
+        sb.append("title=").append(this.title);
+        sb.append(", ");
+        sb.append("url=").append(this.url);
+        sb.append('}');
+        return sb.toString();
+    }
+
 }

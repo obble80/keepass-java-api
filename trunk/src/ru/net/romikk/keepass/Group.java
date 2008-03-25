@@ -46,4 +46,16 @@ public class Group {
     public void setLevel(short level) {
         this.level = level;
     }
+
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+        sb.append("id=").append(Integer.toHexString(this.groupId));
+        sb.append(", ");
+        sb.append("lvl=").append(this.level);
+        sb.append(", ");
+        sb.append("name=").append(this.groupName);
+        sb.append('}');
+        return sb.toString();
+    }
 }
