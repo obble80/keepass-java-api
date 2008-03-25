@@ -31,15 +31,41 @@ public class Database {
 
     private int DB_VERSION = 0x00030002;
 
-    BlockCipher aesEngine = new AESEngine();
-    private byte[] masterKey = Hex.decode("83b62ec2690df02ce7b2f94208469decd93fb0d2febbc2408c86ae7860f5d6af");
+    private BlockCipher aesEngine = new AESEngine();
+    private byte[] masterKey;
+    private byte[] passwordHash;
+    private File dbFile;
 
-    public Database(String file) throws Exception {
-        this(new File(file).getCanonicalFile());
+    public Database(String file) {
+        this(new File(file));
     }
 
-    public Database(File file) throws Exception {
-        FileChannel channel = new FileInputStream(file).getChannel();
+    public Database(File file) {
+        this.dbFile = file;
+    }
+
+    public void setMasterKey(byte[] masterKey) {
+        this.masterKey = masterKey;
+    }
+
+    public void setPasswordHash(byte[] passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public Header getHeader() throws IOException {
+        return header;
+    }
+
+    public Group[] getGroups() throws IOException {
+        return groups;
+    }
+
+    public Entry[] getEntries() {
+        return entries;
+    }
+
+    public void decrypt() throws Exception {
+        FileChannel channel = new FileInputStream(this.dbFile).getChannel();
 
         ByteBuffer bb = ByteBuffer.allocate(Header.LENGTH).order(ByteOrder.LITTLE_ENDIAN);
         channel.read(bb);
@@ -53,7 +79,7 @@ public class Database {
         channel.read(content);
 
         // decrypting content
-        decrypt(content.array());
+        decryptContent(content.array());
 
         content.rewind();
 
@@ -88,19 +114,7 @@ public class Database {
         }
     }
 
-    public Header getHeader() throws IOException {
-        return header;
-    }
-
-    public Group[] getGroups() throws IOException {
-        return groups;
-    }
-
-    public Entry[] getEntries() {
-        return entries;
-    }
-
-    private void decrypt(byte[] data) throws Exception {
+    private void decryptContent(byte[] data) throws Exception {
 
         byte[] transformedKey = transformKey(masterKey);
 
@@ -146,7 +160,7 @@ public class Database {
 
         byte[] result = new byte[keyToTransform.length];
 
-        for (int i = 0; i < getHeader().getKeyEncRounds(); i++) {
+        for (int i = 0; i < this.header.getKeyEncRounds(); i++) {
             int outputLen = ecbCipher.processBytes(keyToTransform, 0, keyToTransform.length, result, 0);
             ecbCipher.doFinal(result, outputLen);
             System.arraycopy(result, 0, keyToTransform, 0, keyToTransform.length);
@@ -157,6 +171,14 @@ public class Database {
     }
 
     public static void main(String[] args) throws Exception {
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+
         Database db = new Database("Database.kdb");
+        db.setMasterKey(Hex.decode("83b62ec2690df02ce7b2f94208469decd93fb0d2febbc2408c86ae7860f5d6af"));
+        db.setPasswordHash(sha256.digest("password".getBytes()));
+        db.decrypt();
+
+        for(Group g : db.getGroups()) System.out.println(g);
+        for(Entry e : db.getEntries()) System.out.println(e);
     }
 }
