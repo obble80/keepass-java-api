@@ -1,9 +1,11 @@
 package ru.net.romikk.keepass;
 
 import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.engines.TwofishEngine;
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.InvalidCipherTextException;
+import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.bouncycastle.crypto.modes.CBCBlockCipher;
@@ -16,6 +18,7 @@ import java.nio.ByteOrder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -32,6 +35,7 @@ public class Database {
     private int DB_VERSION = 0x00030002;
 
     private BlockCipher aesEngine = new AESEngine();
+    private BlockCipher twofishEngine = new TwofishEngine();
     private byte[] masterKey;
     private byte[] passwordHash;
     private File dbFile;
@@ -64,19 +68,24 @@ public class Database {
         return entries;
     }
 
-    public void decrypt() throws Exception {
+    public void decrypt() throws IOException, InvalidCipherTextException, NoSuchAlgorithmException {
         FileChannel channel = new FileInputStream(this.dbFile).getChannel();
 
-        ByteBuffer bb = ByteBuffer.allocate(Header.LENGTH).order(ByteOrder.LITTLE_ENDIAN);
-        channel.read(bb);
-        this.header = new Header(bb);
+        ByteBuffer content;
+        try {
+            ByteBuffer bb = ByteBuffer.allocate(Header.LENGTH).order(ByteOrder.LITTLE_ENDIAN);
+            channel.read(bb);
+            this.header = new Header(bb);
 
-        if ((header.getVersion() & 0xFFFFFF00) != (DB_VERSION & 0xFFFFFF00)) {
-            throw new Exception("Unsupproted version: " + Integer.toHexString(this.header.getVersion()));
+            if ((header.getVersion() & 0xFFFFFF00) != (DB_VERSION & 0xFFFFFF00)) {
+                throw new IOException("Unsupproted version: " + Integer.toHexString(this.header.getVersion()));
+            }
+
+            content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
+            channel.read(content);
+        } finally {
+            channel.close();
         }
-
-        ByteBuffer content = ByteBuffer.allocate((int) (channel.size() - channel.position())).order(ByteOrder.LITTLE_ENDIAN);
-        channel.read(content);
 
         // decrypting content
         decryptContent(content.array());
@@ -114,14 +123,15 @@ public class Database {
         }
     }
 
-    private void decryptContent(byte[] data) throws Exception {
+    private void decryptContent(byte[] data) throws InvalidCipherTextException, IOException {
 
         byte[] transformedKey = transformKey(masterKey);
 
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        sha256.update(this.header.getMasterSeed());
-        sha256.update(transformedKey);
-        byte[] finalKey = sha256.digest();
+        SHA256Digest sha256 = new SHA256Digest();
+        sha256.update(this.header.getMasterSeed(), 0, this.header.getMasterSeed().length);
+        sha256.update(transformedKey, 0, transformedKey.length);
+        byte[] finalKey = new byte[32];
+        sha256.doFinal(finalKey, 0);
 
         // decrypt main data
         performAESDecrypt(finalKey, data);
@@ -133,9 +143,11 @@ public class Database {
 
         sha256.reset();
         sha256.update(data, 0, data.length - idx + 1);
-        byte[] hash = sha256.digest();
+        byte[] hash = new byte[32];
+        sha256.doFinal(hash, 0);
+
         if (!Arrays.equals(hash, this.header.getContentsHash())) {
-            throw new Exception("Decryption failed! Incorrect password and/or master key.");
+            throw new IOException("Decryption failed! Incorrect password and/or master key.");
         }
     }
 
@@ -152,7 +164,7 @@ public class Database {
         System.arraycopy(result, 0, data, 0, data.length);
     }
 
-    private byte[] transformKey(byte[] keyToTransform) throws IOException, InvalidCipherTextException, NoSuchAlgorithmException {
+    private byte[] transformKey(byte[] keyToTransform) throws IOException, InvalidCipherTextException {
         KeyParameter masterSeed2 = new KeyParameter(this.header.getMasterSeed2());
 
         BufferedBlockCipher ecbCipher = new BufferedBlockCipher(this.aesEngine);
@@ -166,8 +178,10 @@ public class Database {
             System.arraycopy(result, 0, keyToTransform, 0, keyToTransform.length);
         }
 
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        return sha256.digest(keyToTransform);
+        SHA256Digest sha256 = new SHA256Digest();
+        sha256.update(keyToTransform, 0, keyToTransform.length);
+        sha256.doFinal(result, 0);
+        return result;
     }
 
     public static void main(String[] args) throws Exception {
@@ -178,7 +192,7 @@ public class Database {
         db.setPasswordHash(sha256.digest("password".getBytes()));
         db.decrypt();
 
-        for(Group g : db.getGroups()) System.out.println(g);
-        for(Entry e : db.getEntries()) System.out.println(e);
+        for (Group g : db.getGroups()) System.out.println(g);
+        for (Entry e : db.getEntries()) System.out.println(e);
     }
 }
