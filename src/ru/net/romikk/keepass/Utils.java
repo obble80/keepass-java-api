@@ -1,6 +1,7 @@
 package ru.net.romikk.keepass;
 
 import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by IntelliJ IDEA.
@@ -11,7 +12,7 @@ import java.util.Calendar;
  */
 public class Utils {
 
-    static public Calendar unpackDate(byte[] d) {
+    static public Date unpackDate(byte[] d) {
         // Byte bits: 11111111 22222222 33333333 44444444 55555555
         // Contents : 00YYYYYY YYYYYYMM MMDDDDDH HHHHMMMM MMSSSSSS
         int year = (d[0] << 6) | ((d[1] >> 2) & 0x0000003F);
@@ -20,9 +21,9 @@ public class Utils {
         int hour = ((d[2] & 0x00000001) << 4) | ((d[3] >> 4) & 0x0000000F);
         int minute = ((d[3] & 0x0000000F) << 2) | ((d[4] >> 6) & 0x00000003);
         int second = d[4] & 0x0000003F;
-        Calendar toReturn = Calendar.getInstance();
-        toReturn.set(year, month, day, hour, minute, second);
-        return toReturn;
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(year, month, day, hour, minute, second);
+        return calendar.getTime();
     }
 
     static public String hexEncode(byte[] aInput) {
