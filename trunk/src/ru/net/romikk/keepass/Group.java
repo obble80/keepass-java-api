@@ -1,7 +1,6 @@
 package ru.net.romikk.keepass;
 
-import java.nio.ByteBuffer;
-import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,17 +12,17 @@ import java.util.Calendar;
 public class Group {
     private int groupId;
     private String groupName;
-    private Calendar creationTime;
-    private Calendar lastModificationTime;
-    private Calendar lastAccessTime;
-    private Calendar expirationTime;
+    private Date creationTime;
+    private Date lastModificationTime;
+    private Date lastAccessTime;
+    private Date expirationTime;
     private short level;
 
     public int getGroupId() {
         return groupId;
     }
 
-    public void setGroupId(int groupId) {
+    protected void setGroupId(int groupId) {
         this.groupId = groupId;
     }
 
@@ -31,39 +30,39 @@ public class Group {
         return groupName;
     }
 
-    public void setGroupName(String groupName) {
+    protected void setGroupName(String groupName) {
         this.groupName = groupName;
     }
 
-    public Calendar getCreationTime() {
+    public Date getCreationTime() {
         return creationTime;
     }
 
-    public void setCreationTime(Calendar creationTime) {
+    protected void setCreationTime(Date creationTime) {
         this.creationTime = creationTime;
     }
 
-    public Calendar getLastModificationTime() {
+    public Date getLastModificationTime() {
         return lastModificationTime;
     }
 
-    public void setLastModificationTime(Calendar lastModificationTime) {
+    protected void setLastModificationTime(Date lastModificationTime) {
         this.lastModificationTime = lastModificationTime;
     }
 
-    public Calendar getLastAccessTime() {
+    public Date getLastAccessTime() {
         return lastAccessTime;
     }
 
-    public void setLastAccessTime(Calendar lastAccessTime) {
+    protected void setLastAccessTime(Date lastAccessTime) {
         this.lastAccessTime = lastAccessTime;
     }
 
-    public Calendar getExpirationTime() {
+    public Date getExpirationTime() {
         return expirationTime;
     }
 
-    public void setExpirationTime(Calendar expirationTime) {
+    protected void setExpirationTime(Date expirationTime) {
         this.expirationTime = expirationTime;
     }
 
@@ -71,7 +70,7 @@ public class Group {
         return level;
     }
 
-    public void setLevel(short level) {
+    protected void setLevel(short level) {
         this.level = level;
     }
 
@@ -84,7 +83,7 @@ public class Group {
         sb.append(", ");
         sb.append("name=").append(this.groupName);
         sb.append(", ");
-        sb.append("created=[").append(this.creationTime.getTime()).append(']');
+        sb.append("created=[").append(this.creationTime).append(']');
         sb.append('}');
         return sb.toString();
     }

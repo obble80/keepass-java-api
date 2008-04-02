@@ -2,7 +2,8 @@ package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
 import java.io.UnsupportedEncodingException;
-import java.util.Calendar;
+import java.util.Date;
+import java.math.BigInteger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,17 +13,19 @@ import java.util.Calendar;
  * To change this template use File | Settings | File Templates.
  */
 public class EntryBuilder {
+    private BigInteger uuid;
     private int groupId;
     private String title;
     private String url;
     private String username;
     private String password;
     private String notes;
-    private Calendar creationTime;
-    private Calendar lastModificationTime;
-    private Calendar lastAccessTime;
-    private Calendar expirationTime;
+    private Date creationTime;
+    private Date lastModificationTime;
+    private Date lastAccessTime;
+    private Date expirationTime;
     private String binaryDescription;
+    private byte[] binaryData;
 
     private byte[] packedDate = new byte[5];
 
@@ -33,8 +36,9 @@ public class EntryBuilder {
                 break;
             case 0x0001: // UUID, uniquely identifying an entry, FIELDSIZE must be 16
                 assertFieldSize(16, fieldSize);
-                data.getLong();
-                data.getLong();
+                fieldData = new byte[fieldSize];
+                data.get(fieldData);
+                this.uuid = new BigInteger(fieldData);
                 break;
             case 0x0002: // Group ID, identifying the group of the entry, FIELDSIZE = 4; It can be any 32-bit value except 0 and 0xFFFFFFFF
                 assertFieldSize(4, fieldSize);
@@ -95,7 +99,8 @@ public class EntryBuilder {
                 this.binaryDescription = new String(fieldData, 0, fieldData.length - 1, "utf8");
                 break;
             case 0x000E: // Binary data
-                for (int i = 0; i < fieldSize; i++) data.get();
+                this.binaryData = new byte[fieldSize];
+                data.get(this.binaryData);
                 break;
             default: // Entry terminator, FIELDSIZE must be 0
                 break;
@@ -110,6 +115,7 @@ public class EntryBuilder {
 
     public Entry buildEntry() {
         Entry toReturn = new Entry();
+        toReturn.setUuid(this.uuid);
         toReturn.setGroupId(this.groupId);
         toReturn.setTitle(this.title);
         toReturn.setUrl(this.url);
@@ -121,6 +127,7 @@ public class EntryBuilder {
         toReturn.setLastModificationTime(this.lastModificationTime);
         toReturn.setExpirationTime(this.expirationTime);
         toReturn.setBinaryDescription(this.binaryDescription);
+        toReturn.setBinaryData(this.binaryData);
         return toReturn;
     }
 

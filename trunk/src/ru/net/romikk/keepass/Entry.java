@@ -1,6 +1,7 @@
 package ru.net.romikk.keepass;
 
-import java.util.Calendar;
+import java.util.Date;
+import java.math.BigInteger;
 
 /**
  * Created by IntelliJ IDEA.
@@ -10,23 +11,33 @@ import java.util.Calendar;
  * To change this template use File | Settings | File Templates.
  */
 public class Entry {
+    private BigInteger uuid;
     private int groupId;
     private String title;
     private String url;
     private String username;
     private String password;
     private String notes;
-    private Calendar creationTime;
-    private Calendar lastModificationTime;
-    private Calendar lastAccessTime;
-    private Calendar expirationTime;
+    private Date creationTime;
+    private Date lastModificationTime;
+    private Date lastAccessTime;
+    private Date expirationTime;
     private String binaryDescription;
+    private byte[] binaryData;
+
+    public BigInteger getUuid() {
+        return uuid;
+    }
+
+    protected void setUuid(BigInteger uuid) {
+        this.uuid = uuid;
+    }
 
     public int getGroupId() {
         return groupId;
     }
 
-    public void setGroupId(int groupId) {
+    protected void setGroupId(int groupId) {
         this.groupId = groupId;
     }
 
@@ -34,7 +45,7 @@ public class Entry {
         return title;
     }
 
-    public void setTitle(String title) {
+    protected void setTitle(String title) {
         this.title = title;
     }
 
@@ -42,7 +53,7 @@ public class Entry {
         return url;
     }
 
-    public void setUrl(String url) {
+    protected void setUrl(String url) {
         this.url = url;
     }
 
@@ -50,7 +61,7 @@ public class Entry {
         return username;
     }
 
-    public void setUsername(String username) {
+    protected void setUsername(String username) {
         this.username = username;
     }
 
@@ -58,7 +69,7 @@ public class Entry {
         return password;
     }
 
-    public void setPassword(String password) {
+    protected void setPassword(String password) {
         this.password = password;
     }
 
@@ -66,39 +77,39 @@ public class Entry {
         return notes;
     }
 
-    public void setNotes(String notes) {
+    protected void setNotes(String notes) {
         this.notes = notes;
     }
 
-    public Calendar getCreationTime() {
+    public Date getCreationTime() {
         return creationTime;
     }
 
-    public void setCreationTime(Calendar creationTime) {
+    protected void setCreationTime(Date creationTime) {
         this.creationTime = creationTime;
     }
 
-    public Calendar getLastModificationTime() {
+    public Date getLastModificationTime() {
         return lastModificationTime;
     }
 
-    public void setLastModificationTime(Calendar lastModificationTime) {
+    protected void setLastModificationTime(Date lastModificationTime) {
         this.lastModificationTime = lastModificationTime;
     }
 
-    public Calendar getLastAccessTime() {
+    public Date getLastAccessTime() {
         return lastAccessTime;
     }
 
-    public void setLastAccessTime(Calendar lastAccessTime) {
+    protected void setLastAccessTime(Date lastAccessTime) {
         this.lastAccessTime = lastAccessTime;
     }
 
-    public Calendar getExpirationTime() {
+    public Date getExpirationTime() {
         return expirationTime;
     }
 
-    public void setExpirationTime(Calendar expirationTime) {
+    protected void setExpirationTime(Date expirationTime) {
         this.expirationTime = expirationTime;
     }
 
@@ -106,8 +117,16 @@ public class Entry {
         return binaryDescription;
     }
 
-    public void setBinaryDescription(String binaryDescription) {
+    protected void setBinaryDescription(String binaryDescription) {
         this.binaryDescription = binaryDescription;
+    }
+
+    public byte[] getBinaryData() {
+        return binaryData;
+    }
+
+    protected void setBinaryData(byte[] binaryData) {
+        this.binaryData = binaryData;
     }
 
     public String toString() {
@@ -119,7 +138,7 @@ public class Entry {
         sb.append(", ");
         sb.append("url=").append(this.url);
         sb.append(", ");
-        sb.append("created=[").append(this.creationTime.getTime()).append(']');
+        sb.append("created=[").append(this.creationTime).append(']');
         sb.append('}');
         return sb.toString();
     }

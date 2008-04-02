@@ -2,7 +2,7 @@ package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
 import java.io.UnsupportedEncodingException;
-import java.util.Calendar;
+import java.util.Date;
 
 /**
  * Created by IntelliJ IDEA.
@@ -14,10 +14,10 @@ import java.util.Calendar;
 public class GroupBuilder {
     private int groupId;
     private String groupName;
-    private Calendar creationTime;
-    private Calendar lastModificationTime;
-    private Calendar lastAccessTime;
-    private Calendar expirationTime;
+    private Date creationTime;
+    private Date lastModificationTime;
+    private Date lastAccessTime;
+    private Date expirationTime;
     private short level;
 
     private byte[] packedDate = new byte[5];
