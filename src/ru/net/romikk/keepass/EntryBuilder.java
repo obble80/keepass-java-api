@@ -2,6 +2,7 @@ package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
 import java.io.UnsupportedEncodingException;
+import java.util.Calendar;
 
 /**
  * Created by IntelliJ IDEA.
@@ -17,7 +18,13 @@ public class EntryBuilder {
     private String username;
     private String password;
     private String notes;
+    private Calendar creationTime;
+    private Calendar lastModificationTime;
+    private Calendar lastAccessTime;
+    private Calendar expirationTime;
     private String binaryDescription;
+
+    private byte[] packedDate = new byte[5];
 
     public void readField(short fieldType, int fieldSize, ByteBuffer data) throws UnsupportedEncodingException {
         byte[] fieldData;
@@ -64,19 +71,23 @@ public class EntryBuilder {
                 break;
             case 0x0009: // Creation time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.creationTime = Utils.unpackDate(packedDate);
                 break;
             case 0x000A: // Last modification time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.lastModificationTime = Utils.unpackDate(packedDate);
                 break;
             case 0x000B: // Last access time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.lastAccessTime = Utils.unpackDate(packedDate);
                 break;
             case 0x000C: // Expiration time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.expirationTime = Utils.unpackDate(packedDate);
                 break;
             case 0x000D: // Binary description UTF-8 encoded string
                 fieldData = new byte[fieldSize];
@@ -105,6 +116,10 @@ public class EntryBuilder {
         toReturn.setUsername(this.username);
         toReturn.setPassword(this.password);
         toReturn.setNotes(this.notes);
+        toReturn.setCreationTime(this.creationTime);
+        toReturn.setLastAccessTime(this.lastAccessTime);
+        toReturn.setLastModificationTime(this.lastModificationTime);
+        toReturn.setExpirationTime(this.expirationTime);
         toReturn.setBinaryDescription(this.binaryDescription);
         return toReturn;
     }
