@@ -1,6 +1,7 @@
 package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
+import java.util.Calendar;
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,7 +13,10 @@ import java.nio.ByteBuffer;
 public class Group {
     private int groupId;
     private String groupName;
-    private long creationTime;
+    private Calendar creationTime;
+    private Calendar lastModificationTime;
+    private Calendar lastAccessTime;
+    private Calendar expirationTime;
     private short level;
 
     public int getGroupId() {
@@ -31,12 +35,36 @@ public class Group {
         this.groupName = groupName;
     }
 
-    public long getCreationTime() {
+    public Calendar getCreationTime() {
         return creationTime;
     }
 
-    public void setCreationTime(long creationTime) {
+    public void setCreationTime(Calendar creationTime) {
         this.creationTime = creationTime;
+    }
+
+    public Calendar getLastModificationTime() {
+        return lastModificationTime;
+    }
+
+    public void setLastModificationTime(Calendar lastModificationTime) {
+        this.lastModificationTime = lastModificationTime;
+    }
+
+    public Calendar getLastAccessTime() {
+        return lastAccessTime;
+    }
+
+    public void setLastAccessTime(Calendar lastAccessTime) {
+        this.lastAccessTime = lastAccessTime;
+    }
+
+    public Calendar getExpirationTime() {
+        return expirationTime;
+    }
+
+    public void setExpirationTime(Calendar expirationTime) {
+        this.expirationTime = expirationTime;
     }
 
     public short getLevel() {
@@ -55,6 +83,8 @@ public class Group {
         sb.append("lvl=").append(this.level);
         sb.append(", ");
         sb.append("name=").append(this.groupName);
+        sb.append(", ");
+        sb.append("created=[").append(this.creationTime.getTime()).append(']');
         sb.append('}');
         return sb.toString();
     }

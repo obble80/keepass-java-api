@@ -1,5 +1,7 @@
 package ru.net.romikk.keepass;
 
+import java.util.Calendar;
+
 /**
  * Created by IntelliJ IDEA.
  * User: romikk
@@ -14,6 +16,10 @@ public class Entry {
     private String username;
     private String password;
     private String notes;
+    private Calendar creationTime;
+    private Calendar lastModificationTime;
+    private Calendar lastAccessTime;
+    private Calendar expirationTime;
     private String binaryDescription;
 
     public int getGroupId() {
@@ -64,6 +70,38 @@ public class Entry {
         this.notes = notes;
     }
 
+    public Calendar getCreationTime() {
+        return creationTime;
+    }
+
+    public void setCreationTime(Calendar creationTime) {
+        this.creationTime = creationTime;
+    }
+
+    public Calendar getLastModificationTime() {
+        return lastModificationTime;
+    }
+
+    public void setLastModificationTime(Calendar lastModificationTime) {
+        this.lastModificationTime = lastModificationTime;
+    }
+
+    public Calendar getLastAccessTime() {
+        return lastAccessTime;
+    }
+
+    public void setLastAccessTime(Calendar lastAccessTime) {
+        this.lastAccessTime = lastAccessTime;
+    }
+
+    public Calendar getExpirationTime() {
+        return expirationTime;
+    }
+
+    public void setExpirationTime(Calendar expirationTime) {
+        this.expirationTime = expirationTime;
+    }
+
     public String getBinaryDescription() {
         return binaryDescription;
     }
@@ -80,6 +118,8 @@ public class Entry {
         sb.append("title=").append(this.title);
         sb.append(", ");
         sb.append("url=").append(this.url);
+        sb.append(", ");
+        sb.append("created=[").append(this.creationTime.getTime()).append(']');
         sb.append('}');
         return sb.toString();
     }

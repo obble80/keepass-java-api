@@ -2,6 +2,7 @@ package ru.net.romikk.keepass;
 
 import java.nio.ByteBuffer;
 import java.io.UnsupportedEncodingException;
+import java.util.Calendar;
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,8 +14,13 @@ import java.io.UnsupportedEncodingException;
 public class GroupBuilder {
     private int groupId;
     private String groupName;
-    private long creationTime;
+    private Calendar creationTime;
+    private Calendar lastModificationTime;
+    private Calendar lastAccessTime;
+    private Calendar expirationTime;
     private short level;
+
+    private byte[] packedDate = new byte[5];
 
     public void readField(short fieldType, int fieldSize, ByteBuffer data) throws UnsupportedEncodingException {
         switch (fieldType) {
@@ -31,20 +37,23 @@ public class GroupBuilder {
                 break;
             case 0x0003: // Creation time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-//                this.creationTime = fieldData.getLong()
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.creationTime = Utils.unpackDate(packedDate);
                 break;
             case 0x0004: // Last modification time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.lastModificationTime = Utils.unpackDate(packedDate);
                 break;
             case 0x0005: // Last access time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.lastAccessTime = Utils.unpackDate(packedDate);
                 break;
             case 0x0006: // Expiration time, FIELDSIZE = 5, FIELDDATA = packed date/time
                 assertFieldSize(5, fieldSize);
-                for (int i = 0; i < 5; i++) data.get();
+                data.get(packedDate);
+                this.expirationTime = Utils.unpackDate(packedDate);
                 break;
             case 0x0007: // Image ID, FIELDSIZE must be 4 bytes
                 assertFieldSize(4, fieldSize);
@@ -74,6 +83,10 @@ public class GroupBuilder {
         toReturn.setGroupId(this.groupId);
         toReturn.setGroupName(this.groupName);
         toReturn.setLevel(this.level);
+        toReturn.setCreationTime(this.creationTime);
+        toReturn.setLastAccessTime(this.lastAccessTime);
+        toReturn.setLastModificationTime(this.lastModificationTime);
+        toReturn.setExpirationTime(this.expirationTime);
         return toReturn;
     }
 }
