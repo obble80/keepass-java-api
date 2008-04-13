@@ -1,11 +1,6 @@
 package ru.net.romikk.keepass;
 
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.beanutils.PropertyUtils;
-
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * Created by IntelliJ IDEA.

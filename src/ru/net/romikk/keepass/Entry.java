@@ -1,7 +1,7 @@
 package ru.net.romikk.keepass;
 
-import java.util.Date;
 import java.math.BigInteger;
+import java.util.Date;
 
 /**
  * Created by IntelliJ IDEA.
