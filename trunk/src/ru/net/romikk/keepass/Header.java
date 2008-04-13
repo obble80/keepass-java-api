@@ -88,10 +88,16 @@ public class Header {
     }
 
     public String toString() {
-        try {
-            return BeanUtils.describe(this).toString();
-        } catch (Exception e) {
-            return "undescribable";
-        }
+        StringBuilder sb = new StringBuilder();
+        sb.append('{');
+        sb.append("dwVersion=").append(Integer.toHexString(this.dwVersion));
+        sb.append(", ");
+        sb.append("dwGroups=").append(this.dwGroups);
+        sb.append(", ");
+        sb.append("dwEntries=").append(this.dwEntries);
+        sb.append(", ");
+        sb.append("dwKeyEncRounds=").append(this.dwKeyEncRounds);
+        sb.append('}');
+        return sb.toString();
     }
 }
